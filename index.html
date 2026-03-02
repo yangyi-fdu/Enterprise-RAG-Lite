@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Ari的 AI 助手</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; }
+        #chat-container { width: 80%; max-width: 600px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 50px; }
+        #chat-box { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 20px; border-radius: 5px; background: #fafafa; }
+        .input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <h2>🤖 Ari的 AI 助手</h2>
+        <div id="chat-box">
+            </div>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="输入你想问的问题...">
+            <button onclick="sendMsg()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMsg() {
+            const input = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+            const question = input.value;
+
+            if (!question) return;
+
+            // 显示我的问题
+            chatBox.innerHTML += `<div style="margin: 10px 0;"><b>我:</b> ${question}</div>`;
+            input.value = ''; 
+
+            try {
+                // 请求后端 API
+                const response = await fetch(`http://127.0.0.1:8000/ask?question=${encodeURIComponent(question)}`);
+                const data = await response.json();
+
+                // 显示 AI 的回答
+                chatBox.innerHTML += `<div style="margin: 10px 0; color: #0056b3;"><b>AI:</b> ${data.answer}</div>`;
+            } catch (error) {
+                chatBox.innerHTML += `<div style="color: red;"><b>错误:</b> 无法连接到后端，请检查 uvicorn 是否正在运行。</div>`;
+            }
+            
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
