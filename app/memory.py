@@ -1,24 +1,33 @@
+import threading
+from collections import defaultdict
+
 from app.config import Config
 
-# 用一个字典来存储所有用户的记忆档案
-sessions = {}
 
-def add_message(session_id: str, role: str, content: str):
-    """
-    存入新消息，并执行“滑动窗口”截断逻辑
-    """
-    if session_id not in sessions:
-        sessions[session_id] = []
-        
-    sessions[session_id].append({"role": role, "content": content})
-    
-    # 🌟 核心截断逻辑：如果历史记录超过了设定的最大限制
-    if len(sessions[session_id]) > Config.MAX_HISTORY_LENGTH:
-        # 切片魔法：只保留列表最后面的 MAX_HISTORY_LENGTH 条记录
-        sessions[session_id] = sessions[session_id][-Config.MAX_HISTORY_LENGTH:]
+class SessionStore:
+    """Per-session conversation history with a sliding window.
 
-def get_history(session_id: str) -> list:
+    Only the user's original questions and the model's answers are stored.
+    Retrieved context is added to the outgoing prompt but never written back,
+    so old context cannot leak into later turns or grow the token count.
     """
-    取出某人的完整记忆档案
-    """
-    return sessions.get(session_id, [])
+
+    def __init__(self, max_length: int = Config.MAX_HISTORY_LENGTH):
+        self.max_length = max_length
+        self._sessions: dict[str, list[dict]] = defaultdict(list)
+        self._lock = threading.Lock()
+
+    def add(self, session_id: str, role: str, content: str) -> None:
+        with self._lock:
+            history = self._sessions[session_id]
+            history.append({"role": role, "content": content})
+            del history[:-self.max_length]
+
+    def get(self, session_id: str) -> list[dict]:
+        """Return a copy, so callers can modify it without touching the store."""
+        with self._lock:
+            return [dict(m) for m in self._sessions.get(session_id, [])]
+
+    def clear(self, session_id: str) -> None:
+        with self._lock:
+            self._sessions.pop(session_id, None)

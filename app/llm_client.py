@@ -1,15 +1,20 @@
 from openai import OpenAI
 
-# ⚠️ 这里记得写你真实的 API Key
-client = OpenAI(
-    api_key="sk-d73a217698e04651959a4e6f38dd80c0", 
-    base_url="https://api.deepseek.com"
-)
+from app.config import Config
 
-def chat_with_llm(messages: list) -> str:
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=messages,
-        stream=False
-    )
-    return response.choices[0].message.content
+
+class LLMClient:
+    """Thin wrapper over any OpenAI-compatible chat completion endpoint."""
+
+    def __init__(self, api_key: str = Config.LLM_API_KEY,
+                 base_url: str = Config.LLM_BASE_URL, model: str = Config.LLM_MODEL):
+        if not api_key:
+            raise RuntimeError("LLM_API_KEY is not set. Copy .env.example to .env and fill it in.")
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.model = model
+
+    def chat(self, messages: list[dict]) -> str:
+        response = self.client.chat.completions.create(
+            model=self.model, messages=messages, temperature=0.2, stream=False
+        )
+        return response.choices[0].message.content
