@@ -27,8 +27,8 @@ class Config:
 
     # LLM (any OpenAI-compatible endpoint)
     LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-    LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.deepseek.com")
-    LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
+    LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4/")
+    LLM_MODEL = os.getenv("LLM_MODEL", "glm-4-flash")
 
     FALLBACK_ANSWER = (
         "I could not find this in the knowledge base, so I can't answer it reliably. "

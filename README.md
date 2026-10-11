@@ -4,7 +4,7 @@ A small retrieval-augmented generation (RAG) service written from scratch, witho
 
 <p align="center"><img src="assets/score_distribution.png" width="820" alt="Best-chunk similarity for in-scope, near-miss and off-topic questions, with the 0.30 threshold"></p>
 
-**Stack:** Python · FastAPI · FAISS · Sentence-Transformers (multilingual MiniLM) · OpenAI-compatible LLM API (DeepSeek) · pytest
+**Stack:** Python · FastAPI · FAISS · Sentence-Transformers (multilingual MiniLM) · any OpenAI-compatible LLM API (default: Zhipu GLM-4-Flash, free tier) · pytest
 
 ## Problem
 
