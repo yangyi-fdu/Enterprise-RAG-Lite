@@ -1,6 +1,6 @@
 # RAG Lite: Retrieval-Augmented Q&A Backend with a Measured Relevance Threshold
 
-A small retrieval-augmented generation (RAG) service written from scratch, without LangChain or LlamaIndex: document chunking, a FAISS vector index, a relevance threshold that refuses out-of-scope questions, and per-session chat memory, behind a FastAPI endpoint. The retrieval side is evaluated on 68 labelled questions. Personal project, 2026.
+A small retrieval-augmented generation (RAG) service written from scratch, without LangChain or LlamaIndex: document chunking, a FAISS vector index, a relevance threshold that refuses out-of-scope questions, and per-session chat memory, behind a FastAPI endpoint. Retrieval and the full pipeline are evaluated on 68 labelled questions in English, Korean and Chinese. Personal project, 2026.
 
 <p align="center"><img src="assets/score_distribution.png" width="820" alt="Best-chunk similarity for in-scope, near-miss and off-topic questions, with the 0.30 threshold"></p>
 
@@ -64,10 +64,24 @@ With 30- and 60-word chunks, overlap raised recall@1 by about 10 points. With 12
 
 - Off-topic questions all score below 0.21 and in-scope questions all score above 0.30, so a threshold of **0.30** separates them with no errors on this set.
 - Near-miss questions overlap with in-scope ones (0.18 to 0.66). "How long is parental leave?" scores 0.64 against the annual-leave section, higher than most real questions. No single threshold removes them without also rejecting valid questions: 0.45 rejects 83 % of near misses but also 22 % of in-scope questions.
-- So the design uses two layers: the threshold blocks clearly unrelated questions before any LLM call, and near misses that pass it reach an LLM that is instructed to answer only from the retrieved context. Whether that second layer works needs an end-to-end test with the LLM, which is not part of this evaluation yet.
+- So the design uses two layers: the threshold blocks clearly unrelated questions before any LLM call, and near misses that pass it reach an LLM that is instructed to answer only from the retrieved context. The end-to-end results below test the second layer.
 - The multilingual embedding model retrieves the English handbook from Korean and Chinese questions with recall@3 of 1.00 (8 questions).
 
 The threshold was chosen on the same small question set it is reported on, so these numbers are optimistic; a held-out set would be needed for a fair estimate.
+
+### End to end, with the LLM
+
+Same 68 questions through the full pipeline, with the same prompt as the API (GLM-4-Flash, top-3 chunks). Every answer is listed in [`eval/end_to_end.md`](eval/end_to_end.md); the automatic check (does the answer contain the expected fact, allowing for Korean or Chinese phrasing) agreed with a manual review of all failures.
+
+| Question group | Result |
+|---|:---:|
+| In-scope (English): correct answer | 37/40 |
+| In-scope (Korean/Chinese): correct answer, in the question's language | 8/8 |
+| Near miss: declined ("I don't know" or fallback) | **12/12** |
+| Off-topic: declined (all by the threshold, without an LLM call) | **8/8** |
+
+- **No made-up answers to out-of-scope questions.** The 8 near misses that passed the threshold, including "How long is parental leave?", were all answered with "I don't know". The two-layer design works on this set.
+- **All 3 in-scope failures come from retrieval, not generation.** Two answers needed facts that were not in the top 3 chunks, and the model correctly said it did not know. The third is the one real error: for "Can I carry unused vacation days into next year?" the retrieved chunk contained only "remaining days expire on 31 March" but not the 5-day carry-over limit, so the model answered "No". A partial chunk can be worse than no chunk, which is an argument for retrieving whole sections or adding a re-ranker.
 
 ## Run it
 
@@ -79,6 +93,7 @@ python -m eval.eval_retrieval          # retrieval evaluation, no API key needed
 pytest                                 # unit and API tests (fake model and LLM)
 
 cp .env.example .env                   # add LLM_API_KEY for the chat endpoint
+python -m eval.eval_end_to_end        # end-to-end evaluation (about 2 minutes)
 uvicorn app.main:app                   # then open index.html in a browser
 ```
 
@@ -89,7 +104,7 @@ curl -X POST http://127.0.0.1:8000/chat -H "Content-Type: application/json" \
 
 ## Limitations
 
-- Exact-match recall is a strict proxy: it does not check whether the LLM's final answer is correct.
+- 68 questions on one invented document is a small test; the numbers show the method works, not how it would do on real company data.
 - The index is rebuilt in memory at start-up and sessions live in process memory, so this is a single-process demo, not a production service.
 - Pure vector search can miss exact identifiers (names, codes); hybrid search with BM25 and a re-ranker would be the next step.
 
