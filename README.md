@@ -108,5 +108,12 @@ curl -X POST http://127.0.0.1:8000/chat -H "Content-Type: application/json" \
 - The index is rebuilt in memory at start-up and sessions live in process memory, so this is a single-process demo, not a production service.
 - Pure vector search can miss exact identifiers (names, codes); hybrid search with BM25 and a re-ranker would be the next step.
 
+## How this was built
+
+- Feb–Mar 2026: original design and first implementation, written by me.
+- Oct 2026: revised with Claude Code as an AI pair programmer: English rewrite,
+  refactoring, unit tests, a measured relevance threshold, and end-to-end tests. These commits are marked
+  as co-authored.
+
 ---
 Code: [MIT](LICENSE). The handbook is invented sample data.
